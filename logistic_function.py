@@ -144,7 +144,9 @@ for i in range(len(amplitude_set)):
         '''
     plt.plot(cen_found[i], amp_found[i], '.', color = "green")
     plt.scatter(1, amplitude_set[i],color = "red")
-    plt.title("amplitude_set: " + str(amplitude_set[i]))
+    plt.title("amplitude_set: " + str(amplitude_set[i]), fontsize = 20)
+    plt.xlabel("center found", fontsize = 20)
+    plt.ylabel("amplitude found", fontsize = 20)
     plt.xlim((0,2))
     plt.show()
 
