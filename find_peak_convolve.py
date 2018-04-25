@@ -29,9 +29,12 @@ for i in range(len(step)):
         ind = np.where(product < 0)[0] + ws_mv_avg // 2
         amp_calc[i][j] = max(data[ind])
         cen_calc[i][j] = x[data == max(data[ind])]
-    plt.plot(cen_calc[i], amp_calc[i], '.', color = "green")
-    plt.scatter(1.5, step[i],color = "red")
-    plt.title("amplitude_set: " + str(step[i]))
+    plt.plot(cen_calc[i], amp_calc[i], '.', color = "green", label = "test sample")
+    plt.scatter(1.5, step[i],color = "red", label = "set value")
+    plt.title("amplitude_set: " + str(step[i]), fontsize = 20)
     plt.xlim((1,2))
-    plt.ylim((step[i] + 1, step[i] - 1))
+    plt.xlabel("center found", fontsize = 20)
+    plt.ylim((step[i] - 1, step[i] + 1))
+    plt.ylabel("amplitude found", fontsize = 20)
+    plt.legend()
     plt.show()
