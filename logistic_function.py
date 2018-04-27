@@ -11,7 +11,7 @@ import os
 num_dps = 1000 #number of data points
 ws = 100 #window size
 
-x = np.linspace(0,2,num_dps)
+x = np.linspace(1,2,num_dps)
 
 def logistic(x, c, delta, k, t0): #logistic function
     return c + delta / (1 + np.exp(-k * (x - t0)))
@@ -95,23 +95,49 @@ def plot_combi(x_org, y_org, x, y, z, x_label, y_label, z_label, fig_title = "wh
 
 #varying amplitude, see how robust the method is.
 
-amplitude_set_1 = np.arange(0, 1, 0.1)
-amplitude_set_2 = np.arange(1, 2, 0.2)
-amplitude_set_3 = np.arange(2, 3, 0.3)
-amplitude_set_4 = np.arange(3, 4, 0.4)
-amplitude_set_5 = np.arange(4, 5.1, 0.5)
-amplitude_set = np.concatenate((amplitude_set_1, amplitude_set_2, amplitude_set_3, amplitude_set_4, amplitude_set_5), axis = 0)
+step = np.around(np.exp(np.linspace(0, 2, 25)) - 1, decimals = 1)
 
-amp_calc = np.zeros(len(amplitude_set))
-cen_calc = np.zeros(len(amplitude_set))
+amp_calc = np.zeros(len(step))
+cen_calc = np.zeros(len(step))
 
-amp_found = np.zeros((len(amplitude_set), 100))
-cen_found = np.zeros((len(amplitude_set), 100))
+amp_found = np.zeros((len(step), 100))
+cen_found = np.zeros((len(step), 100))
 
-for i in range(len(amplitude_set)):
+def on_pick(event):
+    index = int(event.ind)
+    filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(index)+".npy"
+    ps_eff, cen_eff, amp_eff = np.load(filename)
+    cen = moving_median(cen_eff, 49)
+    amp = moving_median(amp_eff, 49)
+    bins = 20
+    H, cen_edge, amp_edge = np.histogram2d(cen, amp, bins)
+    ind = np.where(H == np.amax(H))
+    H = H.T
+    #2D histogram of cen and amp
+    while(len(ind[0]) > 1):
+        bins += 1
+        H, cen_edge, amp_edge = np.histogram2d(cen, amp, bins)
+        ind = np.where(H == np.amax(H))
+        H = H.T
+    figi, gs, axes = plot_combi([0,1], [0,1], ps_eff, cen_eff, amp_eff, "position", "center", "amplitude", fig_title = "amplitude = " + str(step[i]))
+    ax = figi.add_subplot(gs[3:5, 1:3])
+    X, Y = np.meshgrid(cen_edge, amp_edge)
+    ax.set_xlabel("center calculated")
+    ax.set_ylabel("amplitude calculated")
+    histo = ax.pcolormesh(X, Y, H)
+    ax1 = figi.add_subplot(gs[3:5, 3])
+    divider = make_axes_locatable(ax1)
+    cax = divider.append_axes("left", size = "5%", pad = 0.08)
+    figi.colorbar(histo, cax = cax)
+    ax1.axis("off")
+    ax.plot(cen, amp, "og")
+    figi.show()
+
+
+for i in range(len(step)):
     for j in range(100):
         bins = 20
-        filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(amplitude_set[i])+"_case_"+str(j)+".npy"
+        filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(j)+".npy"
         ps_eff, cen_eff, amp_eff = np.load(filename)
         cen = moving_median(cen_eff, 49)
         amp = moving_median(amp_eff, 49)
@@ -128,7 +154,7 @@ for i in range(len(amplitude_set)):
         amp_found[i][j] = np.nanmean(amp[(amp >= amp_edge[int(ind[1])]) & (amp <= amp_edge[int(ind[1] + 1)])])
         #plot
         '''
-        fig, gs, axes = plot_combi([0,1], [0,1], ps_eff, cen_eff, amp_eff, "position", "center", "amplitude", fig_title = "amplitude = " + str(amplitude_set[i]))
+        fig, gs, axes = plot_combi([0,1], [0,1], ps_eff, cen_eff, amp_eff, "position", "center", "amplitude", fig_title = "amplitude = " + str(step[i]))
         ax = fig.add_subplot(gs[3:5, 1:3])
         X, Y = np.meshgrid(cen_edge, amp_edge)
         ax.set_xlabel("center calculated")
@@ -142,12 +168,17 @@ for i in range(len(amplitude_set)):
         ax.plot(cen, amp, "og")
         plt.show()
         '''
-    plt.plot(cen_found[i], amp_found[i], '.', color = "green")
-    plt.scatter(1, amplitude_set[i],color = "red")
-    plt.title("amplitude_set: " + str(amplitude_set[i]), fontsize = 20)
-    plt.xlabel("center found", fontsize = 20)
-    plt.ylabel("amplitude found", fontsize = 20)
-    plt.xlim((0,2))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(cen_found[i], amp_found[i], '.', color = "green", picker = 5)
+    ax.scatter(1.5, step[i],color = "red")
+    ax.set_title("step: " + str(step[i]), fontsize = 20)
+    ax.set_xlabel("center found", fontsize = 20)
+    ax.set_ylabel("amplitude found", fontsize = 20)
+    ax.set_xlim((1,2))
+    figManager = plt.get_current_fig_manager()
+    figManager.resize(*figManager.window.maxsize())
+    cid = fig.canvas.mpl_connect('pick_event', on_pick)
     plt.show()
 
 
@@ -159,10 +190,10 @@ ps = moving_median(ps_eff, 50)
 cen = moving_median(cen_eff, 50)
 amp = moving_median(amp_eff, 50)
 
-for j in range(len(amplitude_set)):
+for j in range(len(step)):
     for k in range(100):
         y = np.random.standard_normal(num_dps)
-        y[x > 1] += amplitude_set[j]
+        y[x > 1] += step[j]
         #prepare initial value array
         initial_values = np.zeros((len(x) - ws + 1, 4))
         for i in range(len(initial_values)):
@@ -178,4 +209,4 @@ for j in range(len(amplitude_set)):
         ps_eff = position[~np.isnan(amplitude)]
         cen_eff = center[~np.isnan(amplitude)]
         amp_eff = amplitude[~np.isnan(amplitude)]
-        np.save("amp_" + str(amplitude_set[j]) + "_case_" + str(k), np.array([ps_eff, cen_eff, amp_eff]))
+        np.save("amp_" + str(step[j]) + "_case_" + str(k), np.array([ps_eff, cen_eff, amp_eff]))
