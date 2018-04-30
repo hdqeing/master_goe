@@ -93,9 +93,38 @@ def plot_combi(x_org, y_org, x, y, z, x_label, y_label, z_label, fig_title = "wh
 
     return fig, gs, [ax1, ax2, ax3, ax4, ax5] 
 
+def find_peaks(x, y, bins, threshold):
+    H, x_edge, _ = np.histogram2d(x, y, bins)
+    num_dps_same_center = np.zeros(len(H))
+    cen_trial = np.array([])
+    amp_trial = np.array([])
+    for i in range(len(num_dps_same_center)):
+        num_dps_same_center[i] = np.sum(H[i])
+        if (num_dps_same_center[i] > threshold):
+            cen_trial = np.append(cen_trial, np.mean(x[(x > x_edge[i]) & (x <x_edge[i + 1])]))
+            amp_trial = np.append(amp_trial, np.mean(y[(x > x_edge[i]) & (x <x_edge[i + 1])]))
+    return cen_trial, amp_trial
+    
+
 #varying amplitude, see how robust the method is.
 
 step = np.around(np.exp(np.linspace(0, 2, 25)) - 1, decimals = 1)
+
+for i in range(len(step)):
+    for j in range(100):
+        filename = "/home/whatever/PythonProjects/DwellAnalysis/logistic_function/data/amp_"+str(step[i])+"_case_"+str(j)+".npy"
+        ps_eff, cen_eff, amp_eff = np.load(filename)
+        cen = moving_median(cen_eff, 49)
+        amp = moving_median(amp_eff, 49)
+        cen_found, amp_found = find_peaks(cen, amp, 15, 80)
+        if (len(cen_found) > 1):
+            print("set step at 1.5 with amplitude " + str(step[i]) + " test case " + str(j))
+            for k in range(len(cen_found)):
+                print(str(k+1) + ". step found at " + str(cen_found[k])  + " with amplitude " + str(amp_found[k]))
+
+
+
+sys.exit(0)
 
 amp_calc = np.zeros(len(step))
 cen_calc = np.zeros(len(step))
@@ -105,7 +134,8 @@ cen_found = np.zeros((len(step), 100))
 
 def on_pick(event):
     index = int(event.ind)
-    filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(index)+".npy"
+    #filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(index)+".npy"
+    filename = "/home/whatever/PythonProjects/DwellAnalysis/logistic_function/data/amp_"+str(step[i])+"_case_"+str(index)+".npy"
     ps_eff, cen_eff, amp_eff = np.load(filename)
     cen = moving_median(cen_eff, 49)
     amp = moving_median(amp_eff, 49)
@@ -133,14 +163,17 @@ def on_pick(event):
     ax.plot(cen, amp, "og")
     figi.show()
 
-
 for i in range(len(step)):
     for j in range(100):
         bins = 20
-        filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(j)+".npy"
+        #pc location
+        #filename = "/home/qing/projects/step_detection/logistic_function/data/amp_"+str(step[i])+"_case_"+str(j)+".npy"
+        #lab computer location
+        filename = "/home/whatever/PythonProjects/DwellAnalysis/logistic_function/data/amp_"+str(step[i])+"_case_"+str(j)+".npy"
         ps_eff, cen_eff, amp_eff = np.load(filename)
         cen = moving_median(cen_eff, 49)
         amp = moving_median(amp_eff, 49)
+        #single peak
         H, cen_edge, amp_edge = np.histogram2d(cen, amp, bins)
         ind = np.where(H == np.amax(H))
         H = H.T
@@ -181,10 +214,12 @@ for i in range(len(step)):
     cid = fig.canvas.mpl_connect('pick_event', on_pick)
     plt.show()
 
+    
 
 
 
-sys.exit(0)
+
+
 
 ps = moving_median(ps_eff, 50)
 cen = moving_median(cen_eff, 50)
