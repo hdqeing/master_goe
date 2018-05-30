@@ -59,40 +59,62 @@ def plot_combi(x_org, y_org, x, y, z, bins, x_label, y_label, z_label, fig_title
 
     ax1 = fig.add_subplot(gs[0,1:3])
     ax1.plot(x_org, y_org)
-    ax1.set_title(fig_title)
+    ax1.set_title(fig_title, fontsize = 20)
     plt.setp(ax1.get_xticklabels(), visible=False)
+    ax1.tick_params(axis = 'both', labelsize = 16)
 
     ax2 = fig.add_subplot(gs[1:3,1:3])
     splt2 = ax2.plot(x, y, "og", label = y_label)
-    ax2.set_xlabel(x_label)
-    ax2.set_ylabel(y_label)
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    ax2.set_ylabel(y_label, fontsize = 20)
+    ax2.tick_params(axis = 'both', labelsize = 16)
+
     ax3 = ax2.twinx()
     splt3 = ax3.plot(x, z, "ob", label = z_label)
-    ax3.set_ylabel(z_label)
+    ax3.set_ylabel(z_label, fontsize = 20)
+    ax3.tick_params(axis = 'both', labelsize = 16)
     splt = splt2 + splt3
     lbls = [l.get_label() for l in splt]
-    ax2.legend(splt, lbls, loc = 0)
+    ax2.legend(splt, lbls, loc = 0, prop = {'size':20})
 
     ax4 = fig.add_subplot(gs[1:3, 0])
     ax4.hist(y,bins = bins, orientation = "horizontal")
     x_lim = ax4.get_xlim()
     ax4.set_xlim((x_lim[1], x_lim[0]))
+    ax4.tick_params(axis = 'both', labelsize = 16)
     plt.setp(ax4.get_yticklabels(), visible=False)
 
     ax5 = fig.add_subplot(gs[1:3, 3])
     ax5.hist(z, bins = bins, orientation = "horizontal")
+    ax5.tick_params(axis = 'both', labelsize = 16)
     plt.setp(ax5.get_yticklabels(), visible=False)
 
     return fig, gs, [ax1, ax2, ax3, ax4, ax5] 
 
-def find_peaks(x, y, bins, threshold):
+def find_peaks(x, y, bins, tolerance, ws):
+    '''
+    This function search for subgroups with population larger than ws*tolerance.
+
+    Assumption:
+        1. the window size is chosen carefully so that there is only one step in the window.
+        2. "curve_fit" function is reliable, which means whenever the real step is located inside the window, curve_fit function return the amplitude and step of the real step.
+        3. a tolerance is given considering that there might be too few data points on the left (right) side of the step, when the window start to include (or is about to exclude) the step
+
+    Arguements:
+        x: array, calculated center.
+        y: array, calculated amplitude.
+        bins: int, bins for making 2D histogram.
+        tolerance: float, [0, 1).
+        ws: int, window size for sliding window 
+
+    '''
     H, x_edge, _ = np.histogram2d(x, y, bins)
     num_dps_same_center = np.zeros(len(H))
     cen_trial = np.array([])
     amp_trial = np.array([])
     for i in range(len(num_dps_same_center)):
-        num_dps_same_center[i] = np.sum(H[i])
-        if (num_dps_same_center[i] > threshold):
+        num_dps_same_center[i] = np.sum(H[i]) #same x, all y, because y is not reliable
+        if (num_dps_same_center[i] > (1 - tolerance) * ws):
             cen_trial = np.append(cen_trial, np.mean(x[(x > x_edge[i]) & (x <x_edge[i + 1])]))
             amp_trial = np.append(amp_trial, np.mean(y[(x > x_edge[i]) & (x <x_edge[i + 1])]))
     return cen_trial, amp_trial

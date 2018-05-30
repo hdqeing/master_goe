@@ -7,11 +7,11 @@ center_candidate = []
 
 x = np.linspace(1,2,1000)
 
-num_steps = 2 #number of steps
+num_steps = 1 #number of steps
 
 step = 3
 
-repeat = 1
+repeat = 10
 
 def find_multiple_steps(x, y, Min_dps):
     '''
@@ -44,7 +44,6 @@ def calculate_params(x, y, x_trial):
     # we have 1000 data points, the span on x axis is (x[-1] - x[0]), so the element unit for x axis should be 0.01. 
     # say we find two steps with a distance smaller than 0.01, it's not reliable
     dist = np.diff(x_trial)
-    print(dist)
     ind = np.where(dist < 10 * (x[-1] - x[0])/num_dps)[0]
     if len(ind) != 0:
         for i in range(len(ind)):
@@ -56,8 +55,6 @@ def calculate_params(x, y, x_trial):
     
     for i in range(len(x_trial)):
         x_trial[i] = np.mean([vertex[i], vertex[i + 1]])
-    print('guess: ', vertex)
-    print('interval: ', x_trial)    
     #divide the curve at candidate steps, fit again, to get more accurate parameters
     for i in range(len(x_trial) - 1):
         x_interval = x[(x > x_trial[i]) & (x < x_trial[i+1])]
@@ -72,44 +69,50 @@ def calculate_params(x, y, x_trial):
     return result
 
 result_overall = []
+candidate_overall = []
 
 for j in range(repeat):
     #generate a curve with steps
-    center = np.random.random_sample(num_steps) + 1
+    #center = np.random.random_sample(num_steps) + 1
+    center = [1.5]
     center.sort()
+    np.random.seed(j)
     y = np.random.randn(num_dps)
     for i in range(len(center)):
         y[(x > center[i])] += step
     find_multiple_steps(x, y, 100)
     result = calculate_params(x, y, center_candidate)
-    print(center)
-    print(result[:, -1])
-    ind = np.where(result[:, 0] == 0)[0]
-    '''
-    center_candidate = np.array(center_candidate)
-    center_candidate.sort()
-    center_candidate = np.hstack([x[0], center_candidate, x[-1]])
-    suspecious_interval = []
-    for i in range(len(ind)):
-        suspecious_interval.append([center_candidate[ind[i]], center_candidate[ind[i] + 2]])
-    
-    for i in range(len(suspecious_interval)):
-        x_interval = x[(x > suspecious_interval[i][0]) & (x < suspecious_interval[i][1])]
-        y_interval = y[(x > suspecious_interval[i][0]) & (x < suspecious_interval[i][1])]
-        center_candidate = []
-        find_multiple_steps(x_interval, y_interval, 20)
-        print(suspecious_interval[i])
-        print(center_candidate)
-        result_new = calculate_params(x_interval, y_interval, center_candidate)
-        print(result_new)
-    #plot results
-    plt.plot(x, y)
-    center_predicted = np.hstack([x[0], result[:, 3], x[-1]])
-    center_predicted.sort()
-    for i in range(len(center_predicted) - 2):
-        x_interval = x[(x > center_predicted[i]) & (x < center_predicted[i+2])]
-        plt.plot(x_interval, logistic(x_interval, result[i][0], result[i][1], result[i][2], result[i][3]))
-    plt.show()
-    '''
     result_overall.append(result)
+    candidate_overall.append(center_candidate)
     center_candidate = []
+
+for i in range(repeat):
+    print('candidate: ', candidate_overall[i])
+    print('found step: ', result_overall[i][:, -1])
+
+sys.exit()
+
+center_candidate = np.array(center_candidate)
+center_candidate.sort()
+center_candidate = np.hstack([x[0], center_candidate, x[-1]])
+suspecious_interval = []
+for i in range(len(ind)):
+    suspecious_interval.append([center_candidate[ind[i]], center_candidate[ind[i] + 2]])
+
+for i in range(len(suspecious_interval)):
+    x_interval = x[(x > suspecious_interval[i][0]) & (x < suspecious_interval[i][1])]
+    y_interval = y[(x > suspecious_interval[i][0]) & (x < suspecious_interval[i][1])]
+    center_candidate = []
+    find_multiple_steps(x_interval, y_interval, 20)
+    print(suspecious_interval[i])
+    print(center_candidate)
+    result_new = calculate_params(x_interval, y_interval, center_candidate)
+    print(result_new)
+#plot results
+plt.plot(x, y)
+center_predicted = np.hstack([x[0], result[:, 3], x[-1]])
+center_predicted.sort()
+for i in range(len(center_predicted) - 2):
+    x_interval = x[(x > center_predicted[i]) & (x < center_predicted[i+2])]
+    plt.plot(x_interval, logistic(x_interval, result[i][0], result[i][1], result[i][2], result[i][3]))
+plt.show()
