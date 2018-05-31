@@ -57,18 +57,21 @@ def plot_combi(x_org, y_org, x, y, z, bins, x_label, y_label, z_label, fig_title
     fig = plt.figure()
     gs = gridspec.GridSpec(5, 4)
 
+    #original data
     ax1 = fig.add_subplot(gs[0,1:3])
     ax1.plot(x_org, y_org)
     ax1.set_title(fig_title, fontsize = 20)
     plt.setp(ax1.get_xticklabels(), visible=False)
     ax1.tick_params(axis = 'both', labelsize = 16)
 
-    ax2 = fig.add_subplot(gs[1:3,1:3])
+    #parameter 1 against window position
+    ax2 = fig.add_subplot(gs[1:3,1:3], sharex = ax1)
     splt2 = ax2.plot(x, y, "og", label = y_label)
     plt.setp(ax2.get_xticklabels(), visible=False)
     ax2.set_ylabel(y_label, fontsize = 20)
     ax2.tick_params(axis = 'both', labelsize = 16)
 
+    #parameter 2 against window position
     ax3 = ax2.twinx()
     splt3 = ax3.plot(x, z, "ob", label = z_label)
     ax3.set_ylabel(z_label, fontsize = 20)
@@ -77,6 +80,7 @@ def plot_combi(x_org, y_org, x, y, z, bins, x_label, y_label, z_label, fig_title
     lbls = [l.get_label() for l in splt]
     ax2.legend(splt, lbls, loc = 0, prop = {'size':20})
 
+    #histogram of parameter 1
     ax4 = fig.add_subplot(gs[1:3, 0])
     ax4.hist(y,bins = bins, orientation = "horizontal")
     x_lim = ax4.get_xlim()
@@ -84,12 +88,34 @@ def plot_combi(x_org, y_org, x, y, z, bins, x_label, y_label, z_label, fig_title
     ax4.tick_params(axis = 'both', labelsize = 16)
     plt.setp(ax4.get_yticklabels(), visible=False)
 
+    #histogram of parameter 2
     ax5 = fig.add_subplot(gs[1:3, 3])
     ax5.hist(z, bins = bins, orientation = "horizontal")
     ax5.tick_params(axis = 'both', labelsize = 16)
     plt.setp(ax5.get_yticklabels(), visible=False)
 
-    return fig, gs, [ax1, ax2, ax3, ax4, ax5] 
+    #histogram 2D
+    ax6 = fig.add_subplot(gs[3:5, 1:3], sharex = ax1)
+    H, cen_edge, amp_edge = np.histogram2d(y, z, bins)
+    H = H.T
+    X, Y = np.meshgrid(cen_edge, amp_edge)
+    ax6.set_xlabel("center calculated", fontsize = 20)
+    ax6.set_ylabel("amplitude calculated", fontsize = 20)
+    histo = ax6.pcolormesh(X, Y, H)
+    ax6.plot(y, z, "og")
+    ax6.tick_params(axis = 'both', labelsize = 20)
+
+    #colorbar
+    ax7 = fig.add_subplot(gs[3:5, 3])
+    divider = make_axes_locatable(ax7)
+    cax = divider.append_axes("left", size = "5%", pad = 0.08)
+    cbar = fig.colorbar(histo, cax = cax)
+    cbar.ax.tick_params(labelsize = 20)
+    ax7.axis("off")
+    
+    fig.subplots_adjust(left=0.01, bottom=0.1, right=0.99, top=0.95,wspace=0.3, hspace=0.1)
+
+    return fig
 
 def find_peaks(x, y, bins, tolerance, ws):
     '''
